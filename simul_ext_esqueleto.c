@@ -90,6 +90,8 @@ int main()
 			}
 		}else if(strcmp(orden, "imprimir")==0){
 			Imprimir(directorio, &ext_blq_inodos, datosfich, argumento1);
+		}else if(strcmp(orden, "remove")==0){
+			Borrar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, argumento1, fent);
 		} 	
 		
       //if (strcmp(orden,"dir")==0) {
@@ -243,7 +245,6 @@ int Imprimir(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_DATOS *mem
 	//Primero compruebo si existe el fichero pedido
 	short unsigned int comprobar=0;
 	short unsigned int wardI;
-	char *datos;
 
 	for(int i=1; ((directorio+i)->dir_inodo)!=NULL_INODO; i++){
 		if((strcmp(nombre , (directorio+i)->dir_nfich ) == 0)){
@@ -256,16 +257,55 @@ int Imprimir(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_DATOS *mem
 
 
 
-	if(comprobar==1){
-
+	if(comprobar){
 		for(int i=0; inodos->blq_inodos[(directorio+wardI)->dir_inodo].i_nbloque[i]!=NULL_INODO; i++){
-			printf("LOL FUNCIONA");
+			char *var = memdatos[inodos->blq_inodos[(directorio+wardI)->dir_inodo].i_nbloque[i]].dato;
+			var[SIZE_BLOQUE]='\0';
+			printf("%s", var);
 		}
-		
+		printf("\n");
 
 	}
 
 	return comprobar;
 } 
 
+int Borrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *ext_bytemaps, EXT_SIMPLE_SUPERBLOCK *ext_superblock, char *nombre, FILE *fich ){
+	short unsigned int comprobar=0;
+	short unsigned int wardI;
 
+	//Primero compruebo que el fichero existe
+	for(int i=1; ((directorio+i)->dir_inodo)!=NULL_INODO; i++){
+		if(strcmp(nombre, (directorio+i)->dir_nfich)==0){
+			comprobar++;
+			wardI=i;
+			continue;
+		}
+	}
+
+	if(comprobar){
+		//Cambio los bytemaps y el super bloque
+		ext_bytemaps->bmap_inodos[ (directorio+wardI)->dir_inodo ]= 0;
+		for(int i=0; inodos->blq_inodos[(directorio+wardI)->dir_inodo].i_nbloque[i]!=NULL_INODO; i++){
+			ext_bytemaps->bmap_bloques[inodos->blq_inodos[(directorio+wardI)->dir_inodo].i_nbloque[i]] = 0;
+			//Añado un bloque libre al super bloque
+			ext_superblock->s_free_blocks_count++;
+		}
+
+		ext_superblock->s_free_inodes_count++;
+
+
+		//Elimino los datos del bloque
+		inodos->blq_inodos[(directorio+wardI)->dir_inodo].size_fichero = 0;
+		for(int i=0; i<MAX_NUMS_BLOQUE_INODO; i++){
+			inodos->blq_inodos[(directorio+wardI)->dir_inodo].i_nbloque[i] = NULL_INODO;
+		}
+		//Ahora borro los datos del fichero
+		for(int i=wardI; i<MAX_FICHEROS-1; i++){
+			directorio[i] = directorio[i+1];
+		}
+	}
+
+
+	return 0;
+}
