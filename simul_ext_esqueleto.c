@@ -92,6 +92,8 @@ int main()
 			Imprimir(directorio, &ext_blq_inodos, datosfich, argumento1);
 		}else if(strcmp(orden, "remove")==0){
 			Borrar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, argumento1, fent);
+		}else if(strcmp(orden, "copy")==0){
+			Copiar(directorio, &ext_blq_inodos, &ext_bytemaps, &ext_superblock, datosfich, argumento1, argumento2, fent);
 		} 	
 		
       //if (strcmp(orden,"dir")==0) {
@@ -259,12 +261,11 @@ int Imprimir(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_DATOS *mem
 
 	if(comprobar){
 		for(int i=0; inodos->blq_inodos[(directorio+wardI)->dir_inodo].i_nbloque[i]!=NULL_INODO; i++){
-			char *var = memdatos[inodos->blq_inodos[(directorio+wardI)->dir_inodo].i_nbloque[i]].dato;
+			unsigned char var[SIZE_BLOQUE];
+			memcpy(var, memdatos[inodos->blq_inodos[(directorio+wardI)->dir_inodo].i_nbloque[i]].dato, SIZE_BLOQUE);
 			var[SIZE_BLOQUE]='\0';
 			printf("%s", var);
 		}
-		printf("\n");
-
 	}
 
 	return comprobar;
@@ -309,3 +310,68 @@ int Borrar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, EXT_BYTE_MAPS *e
 
 	return 0;
 }
+
+
+int Copiar(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos,
+           EXT_BYTE_MAPS *ext_bytemaps, EXT_SIMPLE_SUPERBLOCK *ext_superblock,
+           EXT_DATOS *memdatos, char *nombreorigen, char *nombredestino,  FILE *fich){
+
+	int comprobar=0, wardI,ficheros=0;
+
+	//Primero compruebo que el fichero existe
+        for(int i=1; ((directorio+i)->dir_inodo)!=NULL_INODO; i++){
+                if(strcmp(nombreorigen, (directorio+i)->dir_nfich)==0){
+                        comprobar++;
+                        wardI=i;
+                }
+		if(strcmp(nombredestino, (directorio+i)->dir_nfich)==0){
+                        return 0;
+                }
+		ficheros++;
+        }
+
+	
+	if(comprobar){
+		//Ponemos el nombre del directorio
+		strcpy((directorio+ficheros+1)->dir_nfich, nombredestino);
+		//Vemos el numero de dir_inodo y lo asignamos al bytemaps de inodos
+		int i;
+		for(i=3; 0!=ext_bytemaps->bmap_inodos[i]; i++){
+			if(ext_bytemaps->bmap_inodos[i+1]==0){
+				(directorio+ficheros+1)->dir_inodo = i+1;		
+			}
+		}	
+		ext_bytemaps->bmap_inodos[i]=1;
+		
+		//Asigno el valor del tamaño
+		inodos->blq_inodos[ (directorio+ficheros+1)->dir_inodo ].size_fichero = inodos->blq_inodos[ (directorio+wardI)->dir_inodo ].size_fichero;
+
+		//Asigno el valor de los bloques
+		int blq=0;
+		for(int i=0; inodos->blq_inodos[ (directorio+wardI)->dir_inodo ].i_nbloque[i] != NULL_BLOQUE; i++){
+			for(blq; 0!=ext_bytemaps->bmap_bloques[blq]; blq++){
+				if(ext_bytemaps->bmap_bloques[blq+1]==0){
+					inodos->blq_inodos[ (directorio+ficheros+1)->dir_inodo ].i_nbloque[i] =+ blq+1;		
+				}
+			}
+			ext_bytemaps->bmap_bloques[blq]=1;
+			//Copio los datos
+			
+                        unsigned char var[SIZE_BLOQUE];
+                        memcpy(var, memdatos[inodos->blq_inodos[(directorio+wardI)->dir_inodo].i_nbloque[i]].dato, SIZE_BLOQUE);
+                        var[SIZE_BLOQUE]='\0';
+			memcpy( (memdatos + blq)->dato, var, SIZE_BLOQUE );
+		
+
+		}
+
+
+	}
+
+
+	return 0;
+}
+
+
+
+
