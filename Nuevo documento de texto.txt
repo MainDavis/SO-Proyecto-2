@@ -1,0 +1,23 @@
+void Grabarinodosydirectorio(EXT_ENTRADA_DIR *directorio, EXT_BLQ_INODOS *inodos, FILE *fich){
+	fseek(fich, SIZE_BLOQUE*2, SEEK_SET);
+	fwrite((EXT_DATOS *)inodos, SIZE_BLOQUE, 1, fich);
+	fseek(fich, SIZE_BLOQUE*3, SEEK_SET);
+	fwrite((EXT_DATOS *)directorio, SIZE_BLOQUE, 1, fich);
+	
+}
+
+void GrabarSuperBloque(EXT_SIMPLE_SUPERBLOCK *ext_superblock, FILE *fich){
+	fseek(fich, SIZE_BLOQUE*0, SEEK_SET );
+	fwrite((EXT_DATOS *)ext_superblock, SIZE_BLOQUE, 1,fich);
+}
+
+
+void GrabarByteMaps(EXT_BYTE_MAPS *ext_bytemaps, FILE *fich){
+	fseek(fich, SIZE_BLOQUE*1, SEEK_SET);
+	fwrite((EXT_DATOS *)ext_bytemaps, SIZE_BLOQUE, 1, fich);
+
+}
+void GrabarDatos(EXT_DATOS *memdatos, FILE *fich){
+	fseek(fich, 0, SEEK_SET);
+	fwrite(memdatos, MAX_BLOQUES_DATOS*SIZE_BLOQUE, 1, fich);
+}
