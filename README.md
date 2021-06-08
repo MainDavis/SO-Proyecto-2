@@ -1,3 +1,4 @@
-# SO Proyecto 2
-
-## David Villaverde, Alejandro Garcia, Miguel Abdon.
+# Integrantes del grupo
+* Alejandro García Cancer
+* David Villaverde Ávila
+* Miguel Abdon
